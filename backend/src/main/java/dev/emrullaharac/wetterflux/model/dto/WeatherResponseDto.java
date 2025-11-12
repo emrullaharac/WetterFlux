@@ -20,6 +20,6 @@ public class WeatherResponseDto {
     String currentTimeIso;
     List<String> hourlyTime;
     Map<String, List<Double>> hourlyValues;
-    Map<String, List<String>> hourlyUnits;
+    Map<String, String> hourlyUnits;
 
 }
