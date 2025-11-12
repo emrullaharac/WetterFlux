@@ -2,13 +2,24 @@ package dev.emrullaharac.wetterflux.model.dto;
 
 import lombok.*;
 
-@AllArgsConstructor
-@With
+import java.util.List;
+import java.util.Map;
+
+@Value
 @Builder
-@Getter
 public class WeatherResponseDto {
 
-    private double temperature;
-    private double windSpeed;
-    private String description;
+    double latitude;
+    double longitude;
+    String timezone;
+    String timezoneAbbreviation;
+    Double currentTemperature2m;
+    Double currentWindSpeed10m;
+    Integer currentWeatherCode;
+    String description;
+    String currentTimeIso;
+    List<String> hourlyTime;
+    Map<String, List<Double>> hourlyValues;
+    Map<String, String> hourlyUnits;
+
 }
