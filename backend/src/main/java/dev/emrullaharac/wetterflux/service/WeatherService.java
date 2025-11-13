@@ -34,11 +34,23 @@ public class WeatherService {
     ) {
         validateParams(lat, lon, forecastDays, temperatureUnit);
 
+        String effectiveCurrent = (currentVars == null || currentVars.isBlank())
+                ? "temperature_2m,wind_speed_10m,weather_code"
+                : currentVars;
+
+        String effectiveHourly = (hourlyVars == null || hourlyVars.isBlank())
+                ? "temperature_2m,relative_humidity_2m"
+                : hourlyVars;
+
+        String effectiveDaily = (dailyVars == null || dailyVars.isBlank())
+                ? "weather_code,temperature_2m_max,temperature_2m_min"
+                : dailyVars;
+
         var cached = weatherCacheService.getFromCache(
                 lat, lon,
-                currentVars,
-                hourlyVars,
-                dailyVars,
+                effectiveCurrent,
+                effectiveHourly,
+                effectiveDaily,
                 forecastDays,
                 timezone,
                 temperatureUnit,
@@ -51,8 +63,15 @@ public class WeatherService {
         JsonNode root;
 
         try {
-            root = openMeteoClient.fetchForecast(lat, lon, currentVars, hourlyVars, dailyVars,
-                    forecastDays, timezone, temperatureUnit, windSpeedUnit);
+            root = openMeteoClient.fetchForecast(
+                    lat, lon,
+                    effectiveCurrent,
+                    effectiveHourly,
+                    effectiveDaily,
+                    forecastDays,
+                    timezone,
+                    temperatureUnit,
+                    windSpeedUnit);
         } catch (Exception ex) {
             throw new ApiException(HttpStatus.BAD_GATEWAY, "Failed to fetch weather data from provider");
         }
@@ -126,9 +145,9 @@ public class WeatherService {
 
         weatherCacheService.putToCache(
                 lat, lon,
-                currentVars,
-                hourlyVars,
-                dailyVars,
+                effectiveCurrent,
+                effectiveHourly,
+                effectiveDaily,
                 forecastDays,
                 timezone,
                 temperatureUnit,
