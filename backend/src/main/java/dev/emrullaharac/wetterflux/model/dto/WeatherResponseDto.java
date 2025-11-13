@@ -5,8 +5,10 @@ import lombok.*;
 import java.util.List;
 import java.util.Map;
 
-@Value
+@Data
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class WeatherResponseDto {
 
     double latitude;
