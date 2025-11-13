@@ -1,8 +1,15 @@
 package dev.emrullaharac.wetterflux.exception;
 
+import lombok.Getter;
+import org.springframework.http.HttpStatus;
+
+@Getter
 public class ApiException extends RuntimeException {
 
-    public ApiException(String message) {
+    private final HttpStatus status;
+
+    public ApiException(HttpStatus status, String message) {
         super(message);
+        this.status = status;
     }
 }
