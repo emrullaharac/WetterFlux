@@ -1,6 +1,7 @@
 package dev.emrullaharac.wetterflux.service;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import dev.emrullaharac.wetterflux.cache.WeatherCacheService;
 import dev.emrullaharac.wetterflux.client.OpenMeteoClient;
 import dev.emrullaharac.wetterflux.exception.ApiException;
 import dev.emrullaharac.wetterflux.model.dto.WeatherResponseDto;
@@ -17,6 +18,7 @@ import java.util.Map;
 public class WeatherService {
 
     private final OpenMeteoClient openMeteoClient;
+    private final WeatherCacheService  weatherCacheService;
 
     public WeatherResponseDto getWeather(
             double lat,
@@ -29,6 +31,20 @@ public class WeatherService {
             String temperatureUnit,
             String windSpeedUnit
     ) {
+        var cached = weatherCacheService.getFromCache(
+                lat, lon,
+                currentVars,
+                hourlyVars,
+                dailyVars,
+                forecastDays,
+                timezone,
+                temperatureUnit,
+                windSpeedUnit
+        );
+        if (cached.isPresent()) {
+            return cached.get();
+        }
+
         JsonNode root = openMeteoClient.fetchForecast(lat, lon, currentVars, hourlyVars, dailyVars,
                 forecastDays, timezone, temperatureUnit, windSpeedUnit);
         if (root == null || root.isMissingNode()) {
@@ -83,7 +99,7 @@ public class WeatherService {
 
         String description = mapWeatherCodeToText(currentCode);
 
-        return WeatherResponseDto.builder()
+        WeatherResponseDto response = WeatherResponseDto.builder()
                 .latitude(lat)
                 .longitude(lon)
                 .timezone(tz)
@@ -97,6 +113,19 @@ public class WeatherService {
                 .hourlyValues(hourlyValues)
                 .hourlyUnits(hourlyUnits)
                 .build();
+
+        weatherCacheService.putToCache(
+                lat, lon,
+                currentVars,
+                hourlyVars,
+                dailyVars,
+                forecastDays,
+                timezone,
+                temperatureUnit,
+                windSpeedUnit,
+                response
+        );
+        return response;
     }
 
     private String text(JsonNode node, String field) {
