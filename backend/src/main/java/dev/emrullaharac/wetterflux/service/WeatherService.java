@@ -6,6 +6,7 @@ import dev.emrullaharac.wetterflux.client.OpenMeteoClient;
 import dev.emrullaharac.wetterflux.exception.ApiException;
 import dev.emrullaharac.wetterflux.model.dto.WeatherResponseDto;
 import lombok.RequiredArgsConstructor;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
@@ -31,6 +32,8 @@ public class WeatherService {
             String temperatureUnit,
             String windSpeedUnit
     ) {
+        validateParams(lat, lon, forecastDays, temperatureUnit);
+
         var cached = weatherCacheService.getFromCache(
                 lat, lon,
                 currentVars,
@@ -45,10 +48,17 @@ public class WeatherService {
             return cached.get();
         }
 
-        JsonNode root = openMeteoClient.fetchForecast(lat, lon, currentVars, hourlyVars, dailyVars,
-                forecastDays, timezone, temperatureUnit, windSpeedUnit);
+        JsonNode root;
+
+        try {
+            root = openMeteoClient.fetchForecast(lat, lon, currentVars, hourlyVars, dailyVars,
+                    forecastDays, timezone, temperatureUnit, windSpeedUnit);
+        } catch (Exception ex) {
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Failed to fetch weather data from provider");
+        }
+
         if (root == null || root.isMissingNode()) {
-            throw new ApiException("Open-Meteo empty response");
+            throw new ApiException(HttpStatus.BAD_GATEWAY, "Empty response from weather provider");
         }
 
         String tz = text(root, "timezone");
@@ -126,6 +136,26 @@ public class WeatherService {
                 response
         );
         return response;
+    }
+
+    private void validateParams(double lat, double lon, Integer forecastDays, String temperatureUnit) {
+        if (lat < -90 || lat > 90) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "lat is out of range, must be between -90 and 90.");
+        }
+
+        if (lon < -180 || lon > 180) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "lon is out of range, must be between -180 and 180.");
+        }
+
+        if (forecastDays != null && (forecastDays < 1 || forecastDays > 16)) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "forecastDays must be between 1 and 16.");
+        }
+
+        if (temperatureUnit != null
+                && !temperatureUnit.equalsIgnoreCase("celsius")
+                && !temperatureUnit.equalsIgnoreCase("fahrenheit")) {
+            throw new ApiException(HttpStatus.BAD_REQUEST, "temperatureUnit must be either 'celsius' or 'fahrenheit'");
+        }
     }
 
     private String text(JsonNode node, String field) {
